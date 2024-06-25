@@ -83,6 +83,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', type=str, choices=configs, default=configs[0])
     parser.add_argument('--app-abi', dest='android_abi', type=str, default="arm64-v8a")
+    parser.add_argument('--min-sdk-version', type=int, default=26, help='The minSdkVersion of the built artifacts')
     parser.add_argument('--app-stl', dest='android_stl', type=str, choices=["c++_static", "c++_shared"], default="c++_static")
     parser.add_argument('--apk', action='store_true', help='Generate an APK as a post build step.')
     parser.add_argument('--clean', action='store_true', help='Cleans CMake build artifacts')
@@ -91,6 +92,7 @@ def main():
     cmake_config = args.config
     android_abis = args.android_abi.split(" ")
     android_stl = args.android_stl
+    min_sdk_version = args.min_sdk_version
     create_apk = args.apk
     clean = args.clean
 
@@ -159,7 +161,7 @@ def main():
         cmake_cmd += f' -D BUILD_TESTS={create_apk}'
         cmake_cmd += f' -D CMAKE_ANDROID_STL_TYPE={android_stl}'
 
-        cmake_cmd += ' -D ANDROID_PLATFORM=26'
+        cmake_cmd += f' -D ANDROID_PLATFORM={min_sdk_version}'
         cmake_cmd += ' -D ANDROID_USE_LEGACY_TOOLCHAIN_FILE=NO'
 
         common_ci.RunShellCmd(cmake_cmd)
