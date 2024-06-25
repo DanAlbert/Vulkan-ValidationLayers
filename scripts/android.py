@@ -22,9 +22,14 @@
 
 import argparse
 import os
+from pathlib import Path
 import sys
 import shutil
 import common_ci
+
+
+MIN_SDK_VERSION = 26
+
 
 # Manifest file describing out test application
 def get_android_manifest() -> str:
@@ -77,23 +82,13 @@ def generate_apk(SDK_ROOT : str, CMAKE_INSTALL_DIR : str) -> str:
 # https://en.wikipedia.org/wiki/Apk_(file_format)#Package_contents
 #
 # As a result CMake will need to be run multiple times to create a complete test APK that can be run on any Android device.
-def main():
-    configs = ['Release', 'Debug', 'MinSizeRel']
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--config', type=str, choices=configs, default=configs[0])
-    parser.add_argument('--app-abi', dest='android_abi', type=str, default="arm64-v8a")
-    parser.add_argument('--app-stl', dest='android_stl', type=str, choices=["c++_static", "c++_shared"], default="c++_static")
-    parser.add_argument('--apk', action='store_true', help='Generate an APK as a post build step.')
-    parser.add_argument('--clean', action='store_true', help='Cleans CMake build artifacts')
-    args = parser.parse_args()
-
-    cmake_config = args.config
-    android_abis = args.android_abi.split(" ")
-    android_stl = args.android_stl
-    create_apk = args.apk
-    clean = args.clean
-
+def build(
+    cmake_config: str,
+    android_abis: list[str],
+    android_stl: str,
+    create_apk: bool = False,
+    clean: bool = False,
+) -> Path:
     if "ANDROID_NDK_HOME" not in os.environ:
         print("Cannot find ANDROID_NDK_HOME!")
         sys.exit(1)
@@ -159,7 +154,7 @@ def main():
         cmake_cmd += f' -D BUILD_TESTS={create_apk}'
         cmake_cmd += f' -D CMAKE_ANDROID_STL_TYPE={android_stl}'
 
-        cmake_cmd += ' -D ANDROID_PLATFORM=26'
+        cmake_cmd += f' -D ANDROID_PLATFORM={MIN_SDK_VERSION}'
         cmake_cmd += ' -D ANDROID_USE_LEGACY_TOOLCHAIN_FILE=NO'
 
         common_ci.RunShellCmd(cmake_cmd)
@@ -174,6 +169,29 @@ def main():
 
     if create_apk:
         generate_apk(SDK_ROOT = android_sdk_root, CMAKE_INSTALL_DIR = cmake_install_dir)
+
+    return Path(cmake_install_dir)
+
+
+def main() -> None:
+
+    configs = ['Release', 'Debug', 'MinSizeRel']
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config', type=str, choices=configs, default=configs[0])
+    parser.add_argument('--app-abi', dest='android_abi', type=str, default="arm64-v8a")
+    parser.add_argument('--app-stl', dest='android_stl', type=str, choices=["c++_static", "c++_shared"], default="c++_static")
+    parser.add_argument('--apk', action='store_true', help='Generate an APK as a post build step.')
+    parser.add_argument('--clean', action='store_true', help='Cleans CMake build artifacts')
+    args = parser.parse_args()
+
+    build(
+        args.config,
+        args.android_abi.split(" "),
+        args.android_sdk,
+        args.apk,
+        args.clean,
+    )
 
 if __name__ == '__main__':
     main()
