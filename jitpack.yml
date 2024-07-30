@@ -14,5 +14,5 @@
 # https://github.com/KhronosGroup/Vulkan-ValidationLayers/issues/8167
 # https://github.com/KhronosGroup/Vulkan-ValidationLayers/pull/8303
 install:
-  - python -V
-  - python scripts/jitpack.py
+  - python3 -V
+  - python3 scripts/jitpack.py
